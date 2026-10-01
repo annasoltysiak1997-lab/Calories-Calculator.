@@ -1,0 +1,49 @@
+/* Base layer. Only var(--dl-…) values; no colour literals (see scripts/check-tokens.mjs). */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--dl-color-bg-canvas);
+}
+
+html, body {
+  margin: 0;
+  overflow-x: hidden; /* Daylight rule: vertical scrolling only */
+}
+
+body {
+  font-family: var(--dl-font-sans);
+  font-size: var(--dl-text-body-size);
+  line-height: var(--dl-text-body-line);
+  font-weight: var(--dl-text-body-weight);
+  color: var(--dl-color-text-primary);
+  background: var(--dl-color-bg-canvas);
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+img, svg { display: block; max-width: 100%; }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--dl-focus-width) solid var(--dl-focus-color);
+  outline-offset: var(--dl-focus-offset);
+}
+
+.dl-visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.dl-screen {
+  width: 100%;
+  max-width: var(--dl-size-content-max);
+  margin: 0 auto;
+  padding: var(--dl-space-3) var(--dl-size-screen-margin) var(--dl-space-10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+}
