@@ -1,90 +1,86 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { href, navigate } from '../../app/router';
-import { Mark } from '../../components/brand/Mark';
 import { DemoNote } from '../../components/feedback/Feedback';
+import { CalcEntry } from '../../components/home/CalcEntry';
+import { ContinueCard } from '../../components/home/ContinueCard';
+import { ModeOptions, type ModeOption } from '../../components/home/ModeOptions';
+import { HomeHeader } from '../../components/layout/HomeHeader';
 import { Screen, SectionHeading } from '../../components/layout/Screen';
-import { MacroBar } from '../../components/nutrition/MacroBar';
-import { InlineMacros } from '../../components/nutrition/NutritionSummary';
-import { ScopeBadge } from '../../components/nutrition/ScopeBadge';
-import { ChevronRight, iconProps, Search } from '../../components/primitives/Icon';
-import { formatKcal } from '../../domain/format';
+import { formatGrams, formatKcal } from '../../domain/format';
 import { dishTotals, forAmount } from '../../domain/nutrition';
-import { allFoods, useAppState } from '../../state/store';
+import { actions, allFoods, getState, useAppState } from '../../state/store';
 
-const START = [
-  { op: '×', title: 'One food', text: 'Weigh a single food and see what’s in it', to: '/food' },
-  { op: '+', title: 'Homemade dish', text: 'Add ingredients, then divide into servings', to: '/dish' },
-  { op: '÷', title: 'Recipe', text: 'Find a recipe and calculate per serving', to: '/recipes' },
+type Mode = 'food' | 'dish' | 'recipe';
+
+const MODES: ModeOption<Mode>[] = [
+  { value: 'food', title: 'One food', sub: 'food × grams' },
+  { value: 'dish', title: 'Homemade dish', sub: 'add ingredients' },
+  { value: 'recipe', title: 'Recipe', sub: 'per serving' },
 ];
+
+const RECENT_PREVIEW = 3;
+
+/** Where the entry field leads for each option. */
+function go(mode: Mode, q: string) {
+  if (mode === 'recipe') {
+    // Keep the active filters; only the search text changes.
+    if (q) actions.setFilters({ ...getState().filters, query: q });
+    navigate('/recipes');
+  } else if (mode === 'dish' && !q) {
+    navigate('/dish');
+  } else {
+    // One food, or an ingredient for the dish: the food calculator adds it to the dish.
+    navigate(`/food${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  }
+}
 
 export function HomeScreen() {
   const dish = useAppState((s) => s.dish);
   const recent = useAppState((s) => s.recent);
   const custom = useAppState((s) => s.customFoods);
   const foods = { ...allFoods(), ...custom };
-  const [q, setQ] = useState('');
   const hasDish = dish && dish.lines.length > 0;
+  // A dish in progress makes "Homemade dish" the natural starting point.
+  const [mode, setMode] = useState<Mode>(hasDish ? 'dish' : 'food');
+  const [showAll, setShowAll] = useState(false);
+  const recentRef = useRef<HTMLElement>(null);
   const total = hasDish ? dishTotals(dish.lines, foods).total : null;
+  const recentRows = recent.filter((r) => foods[r.foodId]);
+  const shown = showAll ? recentRows : recentRows.slice(0, RECENT_PREVIEW);
+
+  const openHistory = () => {
+    setShowAll(true);
+    recentRef.current?.scrollIntoView({ block: 'start' });
+    recentRef.current?.focus({ preventScroll: true });
+  };
 
   return (
-    <Screen>
-      <header className="dl-home-head">
-        <Mark size={44} />
-        <h1 className="dl-home-head__title">Calories Calculator</h1>
-        <p className="dl-home-head__formula">food <b>×</b> amount <b>=</b> kcal · protein · carbs · fat</p>
-      </header>
+    <Screen className="dl-page--home">
+      <HomeHeader trailing={recentRows.length ? <button type="button" className="dl-text-button dl-home-history" onClick={openHistory}>History</button> : null} />
 
-      {hasDish && total ? (
-        <section className="dl-card dl-resume" aria-labelledby="resume-title">
-          <div className="dl-resume__top">
-            <ScopeBadge scope="in-progress" />
-            <span className="dl-muted">{dish.lines.length} {dish.lines.length === 1 ? 'ingredient' : 'ingredients'}</span>
-          </div>
-          <div className="dl-resume__main">
-            <h2 id="resume-title" className="dl-resume__name">{dish.name}</h2>
-            <span className="dl-resume__kcal"><b>{formatKcal(total.kcal)}</b> kcal</span>
-          </div>
-          <MacroBar nutrients={total} />
-          <InlineMacros nutrients={total} />
-          <div className="dl-two-buttons">
-            <a className="dl-button dl-button--primary dl-button--md" href={href('/dish')}>Resume dish</a>
-            <a className="dl-button dl-button--secondary dl-button--md" href={href('/portion')}>My portion</a>
-          </div>
-        </section>
-      ) : null}
+      <CalcEntry label="What are you calculating?" placeholder="Food, dish or recipe" onSubmit={(q) => go(mode, q)}
+        onScan={() => actions.toast('Barcode scanning isn’t available yet. Search for the food instead.')} />
 
-      <form className="dl-search" role="search" onSubmit={(e) => { e.preventDefault(); navigate(`/food${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`); }}>
-        <label className="dl-field__control dl-search__control">
-          <Search {...iconProps(20)} />
-          <span className="dl-visually-hidden">Search foods</span>
-          <input className="dl-field__input" type="search" placeholder="Search a food, e.g. skyr" value={q} onChange={(e) => setQ(e.target.value)} enterKeyHint="search" />
-        </label>
-      </form>
+      <ModeOptions label="Calculation type" options={MODES} value={mode} onChange={setMode} />
 
-      <section aria-label="Start a calculation" className="dl-stack">
-        <SectionHeading title="Start" />
-        <ul className="dl-card dl-card--flush dl-list" role="list">
-          {START.map((s) => (
-            <li key={s.to}>
-              <a className="dl-start-row" href={href(s.to)}>
-                <span className="dl-start-row__op" aria-hidden="true">{s.op}</span>
-                <span className="dl-start-row__text"><b>{s.title}</b><span>{s.to === '/dish' && hasDish ? `Continue “${dish!.name}”` : s.text}</span></span>
-                <ChevronRight {...iconProps(20)} />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {hasDish && total ? <ContinueCard name={dish.name} ingredients={dish.lines.length} kcal={total.kcal} href={href('/dish')} /> : null}
 
-      {recent.length ? (
-        <section aria-label="Recent foods" className="dl-stack">
-          <SectionHeading title="Recent" />
-          <ul className="dl-card dl-card--flush dl-list" role="list">
-            {recent.filter((r) => foods[r.foodId]).map((r) => (
+      {recentRows.length ? (
+        <section ref={recentRef} tabIndex={-1} aria-label="Recent foods" className="dl-stack dl-home-recent">
+          <SectionHeading
+            title="Recent"
+            action={recentRows.length > RECENT_PREVIEW ? (
+              <button type="button" className="dl-text-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Show less' : 'See all'}
+              </button>
+            ) : undefined}
+          />
+          <ul className="dl-card dl-card--flush dl-list dl-recent-list" role="list">
+            {shown.map((r) => (
               <li key={r.foodId}>
-                <a className="dl-list-row" href={href(`/food?id=${r.foodId}&g=${r.grams}`)}>
-                  <span className="dl-list-row__main"><b>{foods[r.foodId].name}</b><span>{r.grams} g</span></span>
-                  <span className="dl-list-row__value"><b>{formatKcal(forAmount(foods[r.foodId], r.grams).kcal)}</b> kcal</span>
+                <a className="dl-list-row dl-recent-row" href={href(`/food?id=${r.foodId}&g=${r.grams}`)}>
+                  <span className="dl-recent-row__main"><b>{foods[r.foodId].name}</b><span>{formatGrams(r.grams)} g</span></span>
+                  <span className="dl-recent-row__value"><b>{formatKcal(forAmount(foods[r.foodId], r.grams).kcal)}</b> kcal</span>
                 </a>
               </li>
             ))}

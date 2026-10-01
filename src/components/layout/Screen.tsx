@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 
 /** Single-column page, 560 px max, vertical scrolling only. `bottomBar` stays pinned. */
-export function Screen({ children, bottomBar }: { children: ReactNode; bottomBar?: ReactNode }) {
+export function Screen({ children, bottomBar, className = '' }: { children: ReactNode; bottomBar?: ReactNode; className?: string }) {
   return (
     <>
-      <main className={`dl-page ${bottomBar ? 'dl-page--with-bar' : ''}`}>{children}</main>
+      <main className={`dl-page ${bottomBar ? 'dl-page--with-bar' : ''} ${className}`}>{children}</main>
       {bottomBar ? <div className="dl-bottom-bar"><div className="dl-bottom-bar__inner">{bottomBar}</div></div> : null}
     </>
   );
