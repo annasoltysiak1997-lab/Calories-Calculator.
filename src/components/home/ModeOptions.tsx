@@ -4,28 +4,30 @@ export interface ModeOption<T extends string> {
   value: T;
   title: string;
   sub: string;
+  /** Hash link to the calculator for this option. */
+  href: string;
 }
 
 interface ModeOptionsProps<T extends string> {
   label: string;
   options: ModeOption<T>[];
-  value: T;
-  onChange: (value: T) => void;
+  /** Highlighted option; takes the cobalt treatment. */
+  active: T;
 }
 
-/** Three option cards in one row; the selected one takes the cobalt treatment. */
-export function ModeOptions<T extends string>({ label, options, value, onChange }: ModeOptionsProps<T>) {
+/** Three option cards in one row. Each whole card is a link to its calculator. */
+export function ModeOptions<T extends string>({ label, options, active }: ModeOptionsProps<T>) {
   return (
-    <div className="dl-mode-options" role="group" aria-label={label}>
+    <nav className="dl-mode-options" aria-label={label}>
       {options.map((o) => (
-        <button key={o.value} type="button" className="dl-mode-card" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
-          <span className="dl-mode-card__icon"><Plus {...iconProps(20)} /></span>
+        <a key={o.value} href={o.href} className="dl-mode-card" data-active={o.value === active ? 'true' : undefined}>
+          <span className="dl-mode-card__icon" aria-hidden="true"><Plus {...iconProps(20)} /></span>
           <span className="dl-mode-card__text">
             <span className="dl-mode-card__title">{o.title}</span>
             <span className="dl-mode-card__sub">{o.sub}</span>
           </span>
-        </button>
+        </a>
       ))}
-    </div>
+    </nav>
   );
 }

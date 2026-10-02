@@ -42,6 +42,7 @@ export function Tag({ children }: { children: ReactNode }) {
   return <span className="dl-tag">{children}</span>;
 }
 
-export function ChipGroup({ label, children }: { label: string; children: ReactNode }) {
-  return <div className="dl-chip-group" role="group" aria-label={label}>{children}</div>;
+/** Chips wrap; with `fill` each row of chips stretches to the full width (e.g. quick amounts). */
+export function ChipGroup({ label, fill, children }: { label: string; fill?: boolean; children: ReactNode }) {
+  return <div className={`dl-chip-group${fill ? ' dl-chip-group--fill' : ''}`} role="group" aria-label={label}>{children}</div>;
 }

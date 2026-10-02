@@ -5,7 +5,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   icon: IconComponent;
   /** Required accessible name. */
   label: string;
-  variant?: 'filled' | 'subtle' | 'plain';
+  variant?: 'filled' | 'subtle' | 'plain' | 'outline';
   badge?: number;
   demoState?: 'pressed' | 'focused';
 }

@@ -1,8 +1,10 @@
+import { useId, useState } from 'react';
 import { formatGrams, formatKcal } from '../../domain/format';
 import type { Food, Nutrients } from '../../domain/types';
 import type { LineStatus } from '../../state/selectors';
 import { OperatorGlyph } from '../nutrition/OperatorGlyph';
-import { iconProps, X } from '../primitives/Icon';
+import { Button } from '../primitives/Button';
+import { X } from '../primitives/Icon';
 import { AmountField } from './AmountField';
 
 interface IngredientRowProps {
@@ -15,26 +17,36 @@ interface IngredientRowProps {
   onRemove: () => void;
 }
 
-/** One ingredient: operator, name, editable grams, kcal. Shows "Just added" or "Edited · was 240 g". */
+function statusLabel(status: LineStatus): string | null {
+  if (status?.kind === 'added-now') return 'New';
+  if (status?.kind === 'edited') return `was ${formatGrams(status.wasGrams)} g`;
+  if (status?.kind === 'new') return 'Not in original';
+  return null;
+}
+
+/** One ingredient: "+ Olive oil 15 g [New] 130". Tap the row to change the amount or remove it. */
 export function IngredientRow({ first, food, grams, nutrients, status, onGrams, onRemove }: IngredientRowProps) {
-  const hl = status?.kind === 'added-now' || status?.kind === 'edited' || status?.kind === 'new';
+  const [open, setOpen] = useState(false);
+  const editId = useId();
+  const chip = statusLabel(status);
   return (
-    <li className={`dl-ingredient ${hl ? 'dl-ingredient--highlight' : ''}`}>
-      <OperatorGlyph op={first ? '' : '+'} />
-      <div className="dl-ingredient__main">
-        <span className="dl-ingredient__name">{food.name}</span>
-        {status?.kind === 'added-now' ? <span className="dl-status">Just added</span> : null}
-        {status?.kind === 'edited' ? <span className="dl-status">Edited · was {formatGrams(status.wasGrams)} g · {formatKcal(status.wasKcal)} kcal</span> : null}
-        {status?.kind === 'new' ? <span className="dl-status">Not in the original</span> : null}
-        <div className="dl-ingredient__amount">
-          <AmountField size="md" label={`${food.name} amount`} hideLabel unit="g" value={grams} min={1}
+    <li className={`dl-ingredient ${chip ? 'dl-ingredient--highlight' : ''}`}>
+      <button type="button" className="dl-ingredient__row" aria-expanded={open} aria-controls={editId} onClick={() => setOpen((o) => !o)}>
+        <OperatorGlyph op={first ? '' : '+'} />
+        <span className="dl-ingredient__main">
+          <span className="dl-ingredient__name">{food.name}</span>
+          <span className="dl-ingredient__grams">{formatGrams(grams)} g</span>
+          {chip ? <span className="dl-ingredient__chip">{chip}</span> : null}
+        </span>
+        <span className="dl-ingredient__kcal">{formatKcal(nutrients.kcal)}<span className="dl-visually-hidden"> kcal</span></span>
+      </button>
+      {open ? (
+        <div id={editId} className="dl-ingredient__edit">
+          <AmountField size="md" label={`${food.name} amount`} unit="g" value={grams} min={1}
             onChange={(g) => { if (g !== undefined) onGrams(g); }} />
+          <Button variant="secondary" size="md" icon={X} onClick={onRemove}>Remove</Button>
         </div>
-      </div>
-      <div className="dl-ingredient__side">
-        <span className="dl-ingredient__kcal"><b>{formatKcal(nutrients.kcal)}</b> kcal</span>
-        <button type="button" className="dl-icon-button dl-icon-button--plain dl-ingredient__remove" aria-label={`Remove ${food.name}`} onClick={onRemove}><X {...iconProps(20)} /></button>
-      </div>
+      ) : null}
     </li>
   );
 }

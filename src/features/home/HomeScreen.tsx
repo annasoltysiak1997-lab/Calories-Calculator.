@@ -1,22 +1,25 @@
 import { useRef, useState } from 'react';
 import { href, navigate } from '../../app/router';
-import { DemoNote } from '../../components/feedback/Feedback';
 import { CalcEntry } from '../../components/home/CalcEntry';
 import { ContinueCard } from '../../components/home/ContinueCard';
 import { ModeOptions, type ModeOption } from '../../components/home/ModeOptions';
 import { HomeHeader } from '../../components/layout/HomeHeader';
 import { Screen, SectionHeading } from '../../components/layout/Screen';
-import { formatGrams, formatKcal } from '../../domain/format';
+import { DEMO_DISH, DEMO_RECENT } from '../../data/home.demo';
+import { formatAmount, formatKcal } from '../../domain/format';
 import { dishTotals, forAmount } from '../../domain/nutrition';
 import { actions, allFoods, getState, useAppState } from '../../state/store';
 
 type Mode = 'food' | 'dish' | 'recipe';
 
 const MODES: ModeOption<Mode>[] = [
-  { value: 'food', title: 'One food', sub: 'food × grams' },
-  { value: 'dish', title: 'Homemade dish', sub: 'add ingredients' },
-  { value: 'recipe', title: 'Recipe', sub: 'per serving' },
+  { value: 'food', title: 'One food', sub: 'food × grams', href: href('/food') },
+  { value: 'dish', title: 'Homemade dish', sub: 'add ingredients', href: href('/dish') },
+  { value: 'recipe', title: 'Recipe', sub: 'per serving', href: href('/recipes') },
 ];
+
+/** Highlighted option card, as in the approved Home design. The entry field follows it. */
+const ACTIVE_MODE: Mode = 'dish';
 
 const RECENT_PREVIEW = 3;
 
@@ -39,13 +42,15 @@ export function HomeScreen() {
   const recent = useAppState((s) => s.recent);
   const custom = useAppState((s) => s.customFoods);
   const foods = { ...allFoods(), ...custom };
-  const hasDish = dish && dish.lines.length > 0;
-  // A dish in progress makes "Homemade dish" the natural starting point.
-  const [mode, setMode] = useState<Mode>(hasDish ? 'dish' : 'food');
   const [showAll, setShowAll] = useState(false);
   const recentRef = useRef<HTMLElement>(null);
-  const total = hasDish ? dishTotals(dish.lines, foods).total : null;
-  const recentRows = recent.filter((r) => foods[r.foodId]);
+
+  // Until the person has their own dish and recent foods, Home shows the demo ones.
+  const ownDish = dish && dish.lines.length > 0 ? dish : null;
+  const shownDish = ownDish ?? DEMO_DISH;
+  const dishKcal = dishTotals(shownDish.lines, foods).total.kcal;
+  const ownRecent = recent.filter((r) => foods[r.foodId]);
+  const recentRows = ownRecent.length ? ownRecent : DEMO_RECENT;
   const shown = showAll ? recentRows : recentRows.slice(0, RECENT_PREVIEW);
 
   const openHistory = () => {
@@ -56,42 +61,36 @@ export function HomeScreen() {
 
   return (
     <Screen className="dl-page--home">
-      <HomeHeader trailing={recentRows.length ? <button type="button" className="dl-text-button dl-home-history" onClick={openHistory}>History</button> : null} />
+      <HomeHeader trailing={<button type="button" className="dl-text-button dl-home-history" onClick={openHistory}>History</button>} />
 
-      <CalcEntry label="What are you calculating?" placeholder="Food, dish or recipe" onSubmit={(q) => go(mode, q)}
+      <CalcEntry label="What are you calculating?" placeholder="Food, dish or recipe" onSubmit={(q) => go(ACTIVE_MODE, q)}
         onScan={() => actions.toast('Barcode scanning isn’t available yet. Search for the food instead.')} />
 
-      <ModeOptions label="Calculation type" options={MODES} value={mode} onChange={setMode} />
+      <ModeOptions label="Calculators" options={MODES} active={ACTIVE_MODE} />
 
-      {hasDish && total ? <ContinueCard name={dish.name} ingredients={dish.lines.length} kcal={total.kcal} href={href('/dish')} /> : null}
+      <ContinueCard name={shownDish.name} ingredients={shownDish.lines.length} kcal={dishKcal} href={href('/dish')}
+        onOpen={ownDish ? undefined : () => actions.startDishWith(DEMO_DISH.name, DEMO_DISH.servings, DEMO_DISH.lines)} />
 
-      {recentRows.length ? (
-        <section ref={recentRef} tabIndex={-1} aria-label="Recent foods" className="dl-stack dl-home-recent">
-          <SectionHeading
-            title="Recent"
-            action={recentRows.length > RECENT_PREVIEW ? (
-              <button type="button" className="dl-text-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
-                {showAll ? 'Show less' : 'See all'}
-              </button>
-            ) : undefined}
-          />
-          <ul className="dl-card dl-card--flush dl-list dl-recent-list" role="list">
-            {shown.map((r) => (
-              <li key={r.foodId}>
-                <a className="dl-list-row dl-recent-row" href={href(`/food?id=${r.foodId}&g=${r.grams}`)}>
-                  <span className="dl-recent-row__main"><b>{foods[r.foodId].name}</b><span>{formatGrams(r.grams)} g</span></span>
-                  <span className="dl-recent-row__value"><b>{formatKcal(forAmount(foods[r.foodId], r.grams).kcal)}</b> kcal</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <footer className="dl-home-foot">
-        <DemoNote />
-        <a href={href('/design-system')} className="dl-link">Daylight design system</a>
-      </footer>
+      <section ref={recentRef} tabIndex={-1} aria-label="Recent foods" className="dl-stack dl-home-recent">
+        <SectionHeading
+          title="Recent"
+          action={recentRows.length > RECENT_PREVIEW ? (
+            <button type="button" className="dl-text-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+              See all
+            </button>
+          ) : undefined}
+        />
+        <ul className="dl-card dl-card--flush dl-list dl-recent-list" role="list">
+          {shown.map((r) => (
+            <li key={r.foodId}>
+              <a className="dl-list-row dl-recent-row" href={href(`/food?id=${r.foodId}`)}>
+                <span className="dl-recent-row__main"><b>{foods[r.foodId].name}</b><span>{formatAmount(foods[r.foodId], r.grams, r.unit)}</span></span>
+                <span className="dl-recent-row__value"><b>{formatKcal(forAmount(foods[r.foodId], r.grams).kcal)}</b> kcal</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </Screen>
   );
 }

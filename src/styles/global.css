@@ -23,6 +23,7 @@ body {
 }
 
 button, input { font: inherit; color: inherit; }
+b, strong { font-weight: var(--dl-text-body-weight); } /* Medium; classes set heavier weights where intended */
 button { cursor: pointer; }
 img, svg { display: block; max-width: 100%; }
 

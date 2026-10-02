@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_FOODS as F } from '../../data/foods.demo';
 import { dishTotals, energyShares, forAmount, parseAmount, portionByServings, portionByWeight, roundHalfUp, unitToGrams } from '../nutrition';
-import { formatGrams, formatKcal, toDisplay, workingLine } from '../format';
+import { formatAmount, formatGrams, formatKcal, toDisplay, workingLine } from '../format';
 
 const SOUP = [
   { foodId: 'red-lentils-dry', grams: 300 },
@@ -13,6 +13,11 @@ const SOUP = [
 describe('food × amount', () => {
   it('skyr 150 g = 98 kcal, 17 g protein, 6 g carbs, < 1 g fat', () => {
     expect(toDisplay(forAmount(F['skyr-natural'], 150))).toEqual({ kcal: '98', protein: '17', carbs: '6', fat: '< 1', approximate: false });
+  });
+  it('formats amounts with an optional household unit', () => {
+    expect(formatAmount(F['skyr-natural'], 150)).toBe('150 g');
+    expect(formatAmount(F['apple'], 180, 'medium')).toBe('1 medium · 180 g');
+    expect(formatAmount(F['rice-cooked'], 200, 'medium')).toBe('200 g');
   });
   it('converts household units', () => {
     expect(unitToGrams(F['skyr-natural'], 'pot', 1)).toBe(150);

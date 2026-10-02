@@ -21,10 +21,3 @@ export function dishView(dish: Dish, foods: Record<string, Food>) {
   const original = dish.source ? dishTotals(dish.source.lines, foods).total : null;
   return { lines, total, removed, changes, original };
 }
-
-/** Which macro moved most since the last change, for the "was 53 g" highlight. */
-export function biggestMacroChange(before: Nutrients, after: Nutrients) {
-  const keys = ['protein', 'carbs', 'fat'] as const;
-  const k = keys.reduce((a, b) => (Math.abs(after[b] - before[b]) > Math.abs(after[a] - before[a]) ? b : a));
-  return Math.abs(after[k] - before[k]) >= 0.5 ? k : null;
-}
