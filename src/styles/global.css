@@ -8,7 +8,7 @@ html {
 
 html, body {
   margin: 0;
-  overflow-x: hidden; /* Daylight rule: vertical scrolling only */
+  overflow-x: hidden; /* Layout rule: vertical scrolling only */
 }
 
 body {

@@ -1,9 +1,9 @@
 {
-  "name": "daylight-calories-calculator",
+  "name": "bitewise",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Calories Calculator – responsive React web app built on the Daylight design system.",
+  "description": "Bitewise – a calculator-first nutrition web app for calories and macros in foods, homemade dishes, portions and recipes.",
   "scripts": {
     "dev": "vite",
     "build": "npm run check && tsc -b && vite build",

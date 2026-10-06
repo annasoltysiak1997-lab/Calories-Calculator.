@@ -41,14 +41,29 @@ export interface AppState {
 }
 
 // v2: state saved by builds before the Bitewise redesign (e.g. an old recipe copy as the dish) is not carried over.
-const STORAGE_KEY = 'daylight-calories-calculator:v2';
+export const STORAGE_KEY = 'bitewise-calories-calculator:v2';
+/** Same data format as STORAGE_KEY, saved under the old product name. Moved to STORAGE_KEY on load. */
+export const LEGACY_STORAGE_KEY = 'daylight-calories-calculator:v2';
 const OLD_STORAGE_KEYS = ['daylight-calories-calculator:v1'];
 const initial: AppState = { dish: null, customFoods: {}, recent: [], filters: NO_FILTERS, history: [] };
 const HISTORY_MAX = 20;
 
+/**
+ * Moves saved state from the old product-name key to the Bitewise key, unchanged. If both exist the
+ * Bitewise key wins. The old key is removed only after the copy is written, so nothing is lost if
+ * storage is full.
+ */
+export function migrateStorageKey(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>) {
+  const legacy = storage.getItem(LEGACY_STORAGE_KEY);
+  if (legacy === null) return;
+  if (storage.getItem(STORAGE_KEY) === null) storage.setItem(STORAGE_KEY, legacy);
+  storage.removeItem(LEGACY_STORAGE_KEY);
+}
+
 function load(): AppState {
   try {
     OLD_STORAGE_KEYS.forEach((k) => window.localStorage.removeItem(k));
+    migrateStorageKey(window.localStorage);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return initial;
     const parsed = JSON.parse(raw) as Partial<AppState>;

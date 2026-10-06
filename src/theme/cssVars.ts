@@ -13,7 +13,7 @@ function flatten(prefix: string, tree: Tree, out: Record<string, string>, unit =
   }
 }
 
-/** All Daylight tokens as CSS custom properties, e.g. --dl-color-text-primary. */
+/** All Bitewise tokens as CSS custom properties, e.g. --dl-color-text-primary. */
 export function buildCssVars(): Record<string, string> {
   const out: Record<string, string> = {};
   flatten('--dl-color', color as unknown as Tree, out);

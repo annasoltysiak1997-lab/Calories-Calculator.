@@ -1,4 +1,4 @@
-/** Daylight type scale — Plus Jakarta Sans, 12 styles. Sizes and line heights in px. */
+/** Bitewise type scale — Plus Jakarta Sans, 12 styles. Sizes and line heights in px. */
 export const fontFamily = {
   sans: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
 } as const;

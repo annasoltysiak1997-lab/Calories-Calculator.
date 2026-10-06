@@ -71,7 +71,7 @@ export function TokenPreview() {
       <header className="ds-hero">
         <a href="#/" className="dl-link">‹ Back to the app</a>
         <Wordmark size={28} />
-        <Text as="h1" variant="title-xl">Daylight design system</Text>
+        <Text as="h1" variant="title-xl">Bitewise design system</Text>
         <Text as="p" variant="body" tone="secondary">
           Tokens, type and component foundations for Bitewise. Every value on this page is read from
           <code> src/theme/tokens.ts</code>; nutrition numbers come from <code>src/domain</code> using demo data.

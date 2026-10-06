@@ -6,7 +6,7 @@ export {
 
 export type IconComponent = LucideIcon;
 
-/** Daylight icon defaults: 20 px, 1.9 stroke, currentColor. */
+/** Bitewise icon defaults: 20 px, 1.9 stroke, currentColor. */
 export function iconProps(size: 16 | 20 | 24 = 20): LucideProps {
   return { size, strokeWidth: 1.9, 'aria-hidden': true, focusable: false };
 }
