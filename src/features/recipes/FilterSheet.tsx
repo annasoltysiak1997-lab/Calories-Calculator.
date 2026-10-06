@@ -27,7 +27,7 @@ export function FilterSheet({ open, value, recipes, foods, ingredientOptions, on
 
   return (
     <Sheet open={open} title="Filters" onClose={onClose}
-      headerAction={<button type="button" className="dl-text-button" onClick={() => setDraft((f) => ({ ...f, maxMinutes: undefined, maxKcalPerServing: undefined, diets: [], include: [], exclude: [] }))}>Clear all</button>}
+      headerAction={<button type="button" className="dl-text-button" onClick={() => setDraft((f) => ({ ...f, maxMinutes: undefined, maxKcalPerServing: undefined, minProteinPct: undefined, collection: undefined, diets: [], include: [], exclude: [] }))}>Clear all</button>}
       footer={<button type="button" className="dl-button dl-button--primary dl-button--full" onClick={() => onApply(draft)}>
         {count === 0 ? 'Show results (0 recipes)' : `Show ${count} ${count === 1 ? 'recipe' : 'recipes'}`}
       </button>}>

@@ -4,7 +4,7 @@ import { formatKcal } from '../../domain/format';
 import type { Recipe } from '../../domain/types';
 import { Tag } from '../primitives/Chip';
 import { Clock, iconProps } from '../primitives/Icon';
-import { RecipeIllustration } from './RecipeIllustration';
+import { RecipeImage } from './RecipeImage';
 
 /** time · ≈ kcal per serving, then diet tags. Always in this order. */
 export function RecipeMeta({ recipe, kcal, tags = true, onPhoto = false }: { recipe: Recipe; kcal: number; tags?: boolean; onPhoto?: boolean }) {
@@ -27,7 +27,7 @@ export function RecipeCard({ recipe, kcal, variant = 'standard', eyebrow }: { re
   if (variant === 'hero') {
     return (
       <a href={to} className="dl-recipe-card dl-recipe-card--hero">
-        <RecipeIllustration art={recipe.art} className="dl-recipe-card__art" />
+        <RecipeImage recipe={recipe} className="dl-recipe-card__art" eager />
         <span className="dl-recipe-card__scrim" aria-hidden="true" />
         <span className="dl-recipe-card__overlay">
           {eyebrow ? <span className="dl-recipe-card__eyebrow">{eyebrow}</span> : null}
@@ -40,7 +40,7 @@ export function RecipeCard({ recipe, kcal, variant = 'standard', eyebrow }: { re
   if (variant === 'row') {
     return (
       <a href={to} className="dl-recipe-card dl-recipe-card--row">
-        <RecipeIllustration art={recipe.art} className="dl-recipe-card__thumb" />
+        <RecipeImage recipe={recipe} className="dl-recipe-card__thumb" />
         <span className="dl-recipe-card__text">
           <span className="dl-recipe-card__title">{recipe.name}</span>
           <RecipeMeta recipe={recipe} kcal={kcal} tags={false} />
@@ -50,7 +50,7 @@ export function RecipeCard({ recipe, kcal, variant = 'standard', eyebrow }: { re
   }
   return (
     <a href={to} className="dl-recipe-card">
-      <RecipeIllustration art={recipe.art} className="dl-recipe-card__art dl-recipe-card__art--standard" />
+      <RecipeImage recipe={recipe} className="dl-recipe-card__art dl-recipe-card__art--standard" />
       <span className="dl-recipe-card__text">
         <span className="dl-recipe-card__title">{recipe.name}</span>
         <RecipeMeta recipe={recipe} kcal={kcal} />

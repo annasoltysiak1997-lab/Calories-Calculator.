@@ -22,3 +22,10 @@ export function applyAmountKey(text: string, key: AmountKey, { max, decimals, re
   const next = base === '0' ? key : base + key;
   return Number(next) > max ? base : next;
 }
+
+/** ½ / ¼ keys: keep the whole number and set the fraction, e.g. "4" + ½ → "4.5", "" + ¼ → "0.25". */
+export function withFraction(text: string, fraction: 0.5 | 0.25, max: number): string {
+  const whole = Math.floor(Number(text) || 0);
+  const next = whole + fraction;
+  return next > max ? text : String(next);
+}

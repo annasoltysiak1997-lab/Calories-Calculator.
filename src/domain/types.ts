@@ -35,8 +35,12 @@ export interface Recipe {
   /** Seasonings and water, listed but not counted (under 5 kcal per serving). */
   extras: string[];
   steps: string[];
-  /** Illustration recipe, see RecipeIllustration and theme/foodArt.ts. */
+  /** Illustration recipe, see RecipeIllustration and theme/foodArt.ts. Shown when there is no photo. */
   art: RecipeArt;
+  /** Photo under public/, e.g. "images/recipes/lentil-soup.webp". */
+  photo?: string;
+  /** Curated groups for browsing, e.g. "comfort". */
+  collections?: string[];
   source: 'demo';
 }
 

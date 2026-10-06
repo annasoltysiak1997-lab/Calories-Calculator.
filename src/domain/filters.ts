@@ -1,4 +1,4 @@
-import { recipeNutrition, roundHalfUp } from './nutrition';
+import { energyShares, recipeNutrition, roundHalfUp } from './nutrition';
 import type { Diet, Food, Recipe } from './types';
 
 export type TimeLimit = 15 | 30 | 60;
@@ -12,6 +12,10 @@ export interface RecipeFilters {
   maxKcalPerServing?: KcalLimit;
   include: string[];
   exclude: string[];
+  /** At least this % of a serving's kcal from protein (20 = the usual "high protein" threshold). */
+  minProteinPct?: number;
+  /** Curated group, e.g. "comfort". */
+  collection?: string;
 }
 
 export const NO_FILTERS: RecipeFilters = { query: '', diets: [], include: [], exclude: [] };
@@ -19,6 +23,13 @@ export const NO_FILTERS: RecipeFilters = { query: '', diets: [], include: [], ex
 export const DIET_LABELS: Record<Diet, string> = {
   vegetarian: 'Vegetarian', vegan: 'Vegan', 'gluten-free': 'Gluten-free', 'dairy-free': 'Dairy-free',
 };
+
+export const COLLECTION_LABELS: Record<string, string> = { comfort: 'Comfort food' };
+
+/** Whole-percent share of a serving's kcal that comes from protein. */
+export function proteinPct(recipe: Recipe, foods: Record<string, Food>): number {
+  return energyShares(recipeNutrition(recipe, foods).perServing).protein;
+}
 
 export function kcalPerServing(recipe: Recipe, foods: Record<string, Food>): number {
   return recipeNutrition(recipe, foods).perServing.kcal;
@@ -49,7 +60,9 @@ export type Constraint =
   | { kind: 'diet'; value: Diet }
   | { kind: 'kcal'; value: KcalLimit }
   | { kind: 'include'; value: string }
-  | { kind: 'exclude'; value: string };
+  | { kind: 'exclude'; value: string }
+  | { kind: 'protein'; value: number }
+  | { kind: 'collection'; value: string };
 
 /** Active constraints in chip order. The query is not a chip but still constrains results. */
 export function constraintsOf(f: RecipeFilters): Constraint[] {
@@ -58,6 +71,8 @@ export function constraintsOf(f: RecipeFilters): Constraint[] {
   f.diets.forEach((value) => out.push({ kind: 'diet', value }));
   if (f.maxMinutes) out.push({ kind: 'time', value: f.maxMinutes });
   if (f.maxKcalPerServing) out.push({ kind: 'kcal', value: f.maxKcalPerServing });
+  if (f.minProteinPct) out.push({ kind: 'protein', value: f.minProteinPct });
+  if (f.collection) out.push({ kind: 'collection', value: f.collection });
   f.include.forEach((value) => out.push({ kind: 'include', value }));
   f.exclude.forEach((value) => out.push({ kind: 'exclude', value }));
   return out;
@@ -71,6 +86,8 @@ export function constraintLabel(c: Constraint): string {
     case 'diet': return DIET_LABELS[c.value];
     case 'include': return c.value;
     case 'exclude': return c.value;
+    case 'protein': return 'High protein';
+    case 'collection': return COLLECTION_LABELS[c.value] ?? c.value;
   }
 }
 
@@ -88,6 +105,8 @@ export function meets(recipe: Recipe, c: Constraint, foods: Record<string, Food>
     case 'kcal': return roundHalfUp(kcalPerServing(recipe, foods)) <= c.value;
     case 'include': return names.some((n) => mentions(n, c.value));
     case 'exclude': return !names.some((n) => mentions(n, c.value));
+    case 'protein': return proteinPct(recipe, foods) >= c.value;
+    case 'collection': return recipe.collections?.includes(c.value) ?? false;
   }
 }
 
@@ -107,6 +126,8 @@ export function withoutConstraint(f: RecipeFilters, c: Constraint): RecipeFilter
     case 'diet': return { ...f, diets: f.diets.filter((d) => d !== c.value) };
     case 'include': return { ...f, include: f.include.filter((d) => d !== c.value) };
     case 'exclude': return { ...f, exclude: f.exclude.filter((d) => d !== c.value) };
+    case 'protein': return { ...f, minProteinPct: undefined };
+    case 'collection': return { ...f, collection: undefined };
   }
 }
 

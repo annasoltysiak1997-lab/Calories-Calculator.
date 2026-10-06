@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { navigate, type Route } from '../../app/router';
 import { AmountField } from '../../components/calculator/AmountField';
 import { DemoNote } from '../../components/feedback/Feedback';
@@ -7,6 +7,7 @@ import { CalculatorTabs } from '../../components/layout/AppHeader';
 import { Screen } from '../../components/layout/Screen';
 import { Keypad } from '../../components/calculator/Keypad';
 import { SelectedFoodField } from '../../components/calculator/SelectedFoodField';
+import { useKeypadFocus } from '../../components/calculator/useKeypadFocus';
 import { MacroBar } from '../../components/nutrition/MacroBar';
 import { MacroTiles } from '../../components/nutrition/MacroTiles';
 import { OperatorGlyph } from '../../components/nutrition/OperatorGlyph';
@@ -109,10 +110,11 @@ function FoodCalculation({ food, dishName, onChange, onAdd }: { food: Food; dish
   const [replaceNext, setReplaceNext] = useState(false);
   // Exact weight kept across a unit switch, so 10 g → 0.07 pot → g is still 10 g. Cleared by any edit.
   const [pinnedGrams, setPinnedGrams] = useState<number>();
-  const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const keypadRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  // The actions count as inside, so tapping "Add" with the keypad open is not lost to a layout change.
+  const keypad = useKeypadFocus<'amount'>([inputRef, actionsRef]);
+  const editing = keypad.active !== null;
   const max = unit === 'g' ? 5000 : 50;
   const parsed = parseAmount(text);
   const qty = text !== '' && parsed > 0 && parsed <= max ? parsed : undefined;
@@ -134,20 +136,6 @@ function FoodCalculation({ food, dishName, onChange, onAdd }: { food: Food; dish
     setPinnedGrams(grams);
   };
   const pressKey = (k: AmountKey) => edit(applyAmountKey(text, k, { max, decimals: unit === 'g' ? 1 : 2, replace: replaceNext }));
-  // The keypad stays open while the person works with the amount field, the keypad or the actions below the card.
-  // Closing it on a tap of "Add" would move that button before the tap ends, so the actions count as inside.
-  const isInside = (node: Node | null) =>
-    !!node && (node === inputRef.current || !!keypadRef.current?.contains(node) || !!actionsRef.current?.contains(node));
-  const closeUnlessInside = (e: FocusEvent) => {
-    const next = e.relatedTarget as Node | null;
-    if (next && !isInside(next)) setEditing(false); // keyboard focus moved elsewhere (taps are handled below)
-  };
-  useEffect(() => {
-    if (!editing) return;
-    const onPointerDown = (e: PointerEvent) => { if (!isInside(e.target as Node)) setEditing(false); };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  });
 
   return (
     <Screen className={`dl-page--food ${editing ? 'dl-page--keypad' : ''}`}>
@@ -164,7 +152,7 @@ function FoodCalculation({ food, dishName, onChange, onAdd }: { food: Food; dish
           <OperatorGlyph op="×" />
           <AmountField layout="inline" size="md" label="Amount" placeholder="Enter amount" unit={unit} value={qty} max={max}
             text={text} onTextChange={edit} keypad inputRef={inputRef}
-            onFocus={() => setEditing(true)} onBlur={closeUnlessInside}
+            onFocus={() => keypad.setActive('amount')} onBlur={keypad.onBlur}
             sub={unit !== 'g' && grams ? formatAmount(food, grams, unit) : undefined} />
         </div>
         <hr className="dl-food-card__divider" />
@@ -199,8 +187,8 @@ function FoodCalculation({ food, dishName, onChange, onAdd }: { food: Food; dish
       </p>
 
       {editing ? (
-        <Keypad panelRef={keypadRef} label={`Amount of ${shortFoodName(food.name)}`} unit={unit} onUnitChange={switchUnit} onKey={pressKey}
-          onBlur={closeUnlessInside} units={[{ value: 'g', label: 'g' }, ...units.map(([u]) => ({ value: u, label: u }))]} />
+        <Keypad panelRef={keypad.keypadRef} label={`Amount of ${shortFoodName(food.name)}`} unit={unit} onUnitChange={switchUnit} onKey={pressKey}
+          onBlur={keypad.onBlur} units={[{ value: 'g', label: 'g' }, ...units.map(([u]) => ({ value: u, label: u }))]} />
       ) : null}
     </Screen>
   );

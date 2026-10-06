@@ -52,7 +52,11 @@ function load(): AppState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return initial;
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...initial, ...parsed, toast: undefined, history: [], filters: { ...NO_FILTERS, ...parsed.filters } };
+    // A recipe copy is a working copy for one visit. It is not restored later, so an old copy can never
+    // come back as the dish in progress (the demo Lentil soup flow then starts clean). Own foods, recent
+    // foods and filters are restored as usual.
+    const dish = parsed.dish?.source ? null : parsed.dish ?? null;
+    return { ...initial, ...parsed, dish, toast: undefined, history: [], filters: { ...NO_FILTERS, ...parsed.filters } };
   } catch {
     return initial;
   }

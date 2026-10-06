@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_FOODS as F } from '../../data/foods.demo';
-import { applyAmountKey, type AmountKey } from '../amountInput';
+import { applyAmountKey, withFraction, type AmountKey } from '../amountInput';
 import { shortFoodName } from '../format';
 import { convertAmount, forAmount } from '../nutrition';
 
@@ -39,4 +39,13 @@ describe('short food name', () => {
     expect(shortFoodName('Skyr, natural')).toBe('skyr');
     expect(shortFoodName('Apple')).toBe('apple');
   });
+});
+
+describe('½ and ¼ keys', () => {
+  it('set the fraction of the whole number', () => {
+    expect(withFraction('4', 0.5, 24)).toBe('4.5');
+    expect(withFraction('4.5', 0.25, 24)).toBe('4.25');
+    expect(withFraction('', 0.5, 24)).toBe('0.5');
+  });
+  it('ignore a fraction that would pass the maximum', () => expect(withFraction('4', 0.5, 4)).toBe('4'));
 });

@@ -203,13 +203,17 @@ body:has(.dl-bottom-bar) .dl-toast-region { bottom: calc(112px + env(safe-area-i
 .dl-amount[data-invalid="true"] .dl-amount__control { border-color: var(--dl-color-danger-text); box-shadow: 0 0 0 1px var(--dl-color-danger-text); }
 /* Inline amount: label left, compact field right; dashed with a pencil while empty. */
 .dl-amount--inline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--dl-space-3); row-gap: 4px; }
-.dl-amount--inline .dl-amount__label { font-size: var(--dl-text-body-size); line-height: var(--dl-text-body-line); color: var(--dl-color-text-primary); }
-.dl-amount--inline .dl-amount__control { flex: 0 1 168px; min-width: 0; min-height: var(--dl-size-touch-min); color: var(--dl-color-text-secondary); }
+.dl-amount--inline .dl-amount__label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--dl-text-body-size); line-height: var(--dl-text-body-line); color: var(--dl-color-text-primary); }
+/* Label and value share one line: the value fills the space the label leaves, up to 168 px, so a longer label
+   ("Cooked weight") never pushes it onto a second line. */
+.dl-amount--inline .dl-amount__control { flex: 1 1 0; max-width: 168px; min-width: 0; min-height: var(--dl-size-touch-min); color: var(--dl-color-text-secondary); }
 .dl-amount--inline .dl-amount__control[data-empty="true"] { border-style: dashed; }
 .dl-amount--inline .dl-amount__input::placeholder { color: var(--dl-color-text-primary); }
 .dl-amount--inline .dl-amount__sub, .dl-amount--inline .dl-amount__error { flex-basis: 100%; text-align: right; }
 /* Filled: the number reads as plain text, right-aligned before its unit; focus shows an accent underline and caret. */
 .dl-amount--inline .dl-amount__input { caret-color: var(--dl-color-accent-default); }
+/* Focus is shown by the field's own accent border/underline instead of a second ring around the text. */
+.dl-amount--inline .dl-amount__input:focus-visible { outline: none; }
 .dl-amount--inline .dl-amount__control:not([data-empty]) { background: transparent; border-color: transparent; border-radius: 0; padding-right: 0; }
 .dl-amount--inline .dl-amount__control:not([data-empty]) .dl-amount__input { text-align: right; }
 .dl-amount--inline .dl-amount__control:not([data-empty]):focus-within { border-color: transparent; box-shadow: inset 0 -2px 0 var(--dl-color-accent-default); }
@@ -261,6 +265,8 @@ body:has(.dl-bottom-bar) .dl-toast-region { bottom: calc(112px + env(safe-area-i
 
 /* ---------- Recipes ---------- */
 .dl-illustration { display: block; width: 100%; height: 100%; }
+/* Recipe and category photos fill the same boxes as the illustrations, cropped, never stretched. */
+.dl-photo { display: block; width: 100%; height: 100%; object-fit: cover; background: var(--dl-color-bg-inset); }
 .dl-recipe-card { position: relative; display: flex; flex-direction: column; gap: var(--dl-space-3); text-decoration: none; color: var(--dl-color-text-primary); border-radius: var(--dl-radius-lg); }
 .dl-recipe-card__art { border-radius: var(--dl-radius-lg); overflow: hidden; }
 .dl-recipe-card__art--standard { aspect-ratio: 16 / 9; height: auto; }
@@ -454,3 +460,78 @@ body:has(.dl-keypad) .dl-toast-region { bottom: calc(300px + env(safe-area-inset
 .dl-action-tile--accent .dl-action-tile__sub { color: var(--dl-color-text-on-accent); }
 .dl-action-tile:active { opacity: 0.85; }
 
+/* ---------- Page header with context (C4 "Your portion · Lentil soup") ---------- */
+.dl-page-header__title { margin: 0; min-width: 0; font-size: var(--dl-text-title-lg-size); line-height: var(--dl-text-title-lg-line); font-weight: 500; letter-spacing: -0.02em; }
+.dl-page-header__context {
+  flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-flex; align-items: center; min-height: var(--dl-size-touch-min);
+  color: var(--dl-color-text-secondary); font-size: var(--dl-text-body-size); font-weight: 500; text-decoration: none;
+}
+
+/* ---------- Portion (C4) ---------- */
+.dl-page--portion { gap: var(--dl-space-3); }
+.dl-page--portion > .dl-appbar { margin-bottom: var(--dl-space-4); }
+.dl-portion-card { margin-top: var(--dl-space-5); padding: var(--dl-space-5) var(--dl-space-2); display: flex; flex-direction: column; gap: var(--dl-space-1); }
+.dl-portion-row { display: flex; align-items: center; gap: var(--dl-space-2); min-height: 50px; padding: 0 var(--dl-space-3) 0 var(--dl-space-4); border-radius: var(--dl-radius-sm); }
+.dl-portion-row + .dl-portion-row { border-top: 1px solid var(--dl-color-border-hairline); }
+.dl-portion-row:focus-within { background: var(--dl-color-accent-subtle); border-top-color: transparent; }
+.dl-portion-row:focus-within + .dl-portion-row { border-top-color: transparent; }
+.dl-portion-row > .dl-operator { font-size: 18px; }
+.dl-portion-row .dl-amount { flex: 1; }
+.dl-portion-row__label { flex: 1; min-width: 0; font-size: var(--dl-text-body-size); font-weight: 500; }
+.dl-portion-row__value { white-space: nowrap; font-size: var(--dl-text-body-size); font-weight: 500; font-variant-numeric: tabular-nums; }
+.dl-portion-card .dl-dish-card__divider { margin-top: var(--dl-space-3); margin-bottom: var(--dl-space-3); }
+.dl-portion-card__working { margin: 0; text-align: center; color: var(--dl-color-text-secondary); font-size: var(--dl-text-caption-size); line-height: var(--dl-text-caption-line); font-weight: 500; font-variant-numeric: tabular-nums; }
+.dl-portion-card__hint { margin: 0; padding: 0 var(--dl-space-4) var(--dl-space-2); color: var(--dl-color-text-secondary); font-size: var(--dl-text-meta-size); font-weight: 500; }
+
+/* Keypad: a fixed unit pill followed by quick keys (servings · ½ · ¼) */
+.dl-keypad__pills { display: flex; align-items: center; flex-shrink: 0; background: var(--dl-color-border-field); }
+.dl-keypad__unit {
+  display: inline-flex; align-items: center; min-height: 30px; padding: 0 var(--dl-space-4); border-radius: var(--dl-radius-full);
+  background: var(--dl-color-text-primary); color: var(--dl-color-text-on-accent); font-size: var(--dl-text-caption-size); font-weight: 500;
+}
+.dl-keypad__pills .dl-segmented__item { min-width: 36px; }
+
+
+/* ---------- Launch splash (Bitewise animation, frame 390 × 844) ---------- */
+/* Base styles are the final frame; each animation starts from its Figma "before" state. */
+.dl-launch { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--dl-color-accent-default); color: var(--dl-color-text-on-accent); }
+.dl-launch--leaving { pointer-events: none; animation: dl-launch-out 400ms ease-out forwards; }
+.dl-launch--leaving .dl-launch__stack { animation: dl-launch-out-stack 400ms ease-out forwards; }
+/* 160 mark + 16 + 42.5 name + 24 + 8 dots ≈ 251 px, centred: mark top ≈ 296.5 px at 844 px high. */
+.dl-launch__stack { display: flex; flex-direction: column; align-items: center; }
+.dl-launch__mark { display: block; overflow: visible; }
+.dl-launch__logo { transform-box: view-box; transform-origin: 80px 80px; animation: dl-launch-logo 510ms 1.05s both; }
+.dl-launch__ring { fill: none; stroke: var(--dl-color-text-on-accent); transform-box: fill-box; transform-origin: center; animation: dl-launch-ring 700ms cubic-bezier(0.42, 0, 0.58, 1) 300ms both; }
+.dl-launch__bite { transform-box: fill-box; transform-origin: center; animation: dl-launch-bite 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 1.05s both; }
+.dl-launch__name { margin-top: 16px; font-size: 34px; line-height: 1.25; font-weight: 800; letter-spacing: -0.035em; white-space: nowrap; animation: dl-launch-name 450ms ease-out 1.61s both; }
+.dl-launch__dots { display: flex; gap: 8px; margin-top: 24px; animation: dl-launch-fade 450ms ease-out 1.61s both; }
+.dl-launch__dots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.4; animation: dl-launch-dot 1.05s infinite both; }
+.dl-launch__dots i:nth-child(1) { animation-delay: 2.21s; }
+.dl-launch__dots i:nth-child(2) { animation-delay: 2.56s; }
+.dl-launch__dots i:nth-child(3) { animation-delay: 2.91s; }
+
+@keyframes dl-launch-ring { from { transform: scale(0); opacity: 0; } }
+@keyframes dl-launch-bite { from { transform: scale(0); } }
+/* 03 Bite (bouncy, 0.3 s) → 0.01 s hold → 04 Settle (ease-out, 0.2 s), as one 0.51 s track. */
+@keyframes dl-launch-logo {
+  0% { transform: scale(1); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  58.82% { transform: scale(0.94); animation-timing-function: linear; }
+  60.78% { transform: scale(0.94); animation-timing-function: ease-out; }
+  100% { transform: scale(1); }
+}
+@keyframes dl-launch-name { from { opacity: 0; transform: translateY(10px); } }
+@keyframes dl-launch-fade { from { opacity: 0; } }
+/* One dot's 1.05 s cycle (3 dots × 0.05 s delay + 0.3 s): activate, hold while the next starts, return. */
+@keyframes dl-launch-dot {
+  0% { opacity: 0.4; transform: none; animation-timing-function: ease-in-out; }
+  28.57% { opacity: 1; transform: translateY(-4px); }
+  33.33% { opacity: 1; transform: translateY(-4px); animation-timing-function: ease-in-out; }
+  61.9%, 100% { opacity: 0.4; transform: none; }
+}
+@keyframes dl-launch-out { to { opacity: 0; } }
+@keyframes dl-launch-out-stack { to { transform: scale(1.04); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-launch, .dl-launch * { animation: none !important; }
+}

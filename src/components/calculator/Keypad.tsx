@@ -10,6 +10,8 @@ interface KeypadProps {
   unit: string;
   onUnitChange: (unit: string) => void;
   onKey: (key: AmountKey) => void;
+  /** Extra quick keys next to the unit, e.g. ½ and ¼ for servings. */
+  shortcuts?: { label: string; spoken: string; onPress: () => void }[];
   onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
   panelRef?: Ref<HTMLDivElement>;
 }
@@ -20,7 +22,7 @@ const ROWS: AmountKey[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'
  * On-screen number pad pinned to the bottom while an amount is being entered.
  * Pressing a key keeps focus in the amount field, so the caret stays visible.
  */
-export function Keypad({ label, units, unit, onUnitChange, onKey, onBlur, panelRef }: KeypadProps) {
+export function Keypad({ label, units, unit, onUnitChange, onKey, shortcuts, onBlur, panelRef }: KeypadProps) {
   const keepFocus = (e: { preventDefault: () => void }) => e.preventDefault();
   return (
     <div ref={panelRef} className="dl-keypad" role="group" aria-label={label} onPointerDown={keepFocus} onMouseDown={keepFocus} onBlur={onBlur}>
@@ -29,6 +31,13 @@ export function Keypad({ label, units, unit, onUnitChange, onKey, onBlur, panelR
         {units.length > 1 ? (
           <SegmentedControl size="sm" label="Unit" value={unit} onChange={onUnitChange}
             options={units} />
+        ) : shortcuts?.length ? (
+          <div className="dl-segmented dl-segmented--sm dl-keypad__pills">
+            <span className="dl-keypad__unit">{units.find((u) => u.value === unit)?.label ?? unit}</span>
+            {shortcuts.map((s) => (
+              <button key={s.label} type="button" className="dl-segmented__item" aria-label={s.spoken} onClick={s.onPress}>{s.label}</button>
+            ))}
+          </div>
         ) : null}
       </div>
       <div className="dl-keypad__keys">
