@@ -4,6 +4,8 @@ import type { Recipe } from '../domain/types';
 export const DEMO_RECIPES: Recipe[] = [
   {
     id: 'lentil-soup', name: 'Lentil soup with smoked paprika',
+    photo: 'images/recipes/lentil-soup.webp',
+    collections: ['comfort'],
     description: 'Velvety red lentils, sweet carrot and coconut, with a smoky finish. One pot, freezes well.',
     minutes: 35, servings: 4, diets: ['vegan', 'gluten-free'],
     lines: [
@@ -26,6 +28,8 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'red-lentil-dal', name: 'Red lentil dal',
+    photo: 'images/recipes/red-lentil-dal.webp',
+    collections: ['comfort'],
     description: 'A golden, gently spiced dal with tomato and ginger. Ready in under half an hour.',
     minutes: 25, servings: 4, diets: ['vegan', 'gluten-free'],
     lines: [
@@ -40,6 +44,7 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'lentil-walnut-salad', name: 'Lentil & walnut salad',
+    photo: 'images/recipes/lentil-walnut-salad.webp',
     description: 'Peppery rocket, earthy lentils and toasted walnuts with a sharp lemon dressing.',
     minutes: 15, servings: 2, diets: ['vegan'],
     lines: [
@@ -54,6 +59,8 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'lentil-bolognese', name: 'Lentil bolognese',
+    photo: 'images/recipes/lentil-bolognese.webp',
+    collections: ['comfort'],
     description: 'A rich, slow-tasting tomato and lentil sauce over spaghetti, without the meat.',
     minutes: 40, servings: 4, diets: ['vegan'],
     lines: [
@@ -68,6 +75,8 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'lentil-feta-bake', name: 'Lentil & feta bake',
+    photo: 'images/recipes/lentil-feta-bake.webp',
+    collections: ['comfort'],
     description: 'Roasted peppers and tomatoes baked with lentils under a salty feta crust.',
     minutes: 50, servings: 4, diets: ['vegetarian', 'gluten-free'],
     lines: [
@@ -82,6 +91,7 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'greek-salad', name: 'Greek salad with feta',
+    photo: 'images/recipes/greek-salad.webp',
     description: 'Ripe tomato, crunchy cucumber, olives and a slab of feta. No cooking needed.',
     minutes: 15, servings: 2, diets: ['vegetarian', 'gluten-free'],
     lines: [
@@ -97,6 +107,8 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'white-bean-stew', name: 'Tomato & white bean stew',
+    photo: 'images/recipes/white-bean-stew.webp',
+    collections: ['comfort'],
     description: 'Creamy white beans in a garlicky tomato sauce with wilted spinach.',
     minutes: 30, servings: 4, diets: ['vegan', 'gluten-free'],
     lines: [
@@ -111,6 +123,7 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'shakshuka', name: 'Shakshuka',
+    photo: 'images/recipes/shakshuka.webp',
     description: 'Eggs gently poached in a spiced tomato and pepper sauce. Good any time of day.',
     minutes: 25, servings: 2, diets: ['vegetarian', 'gluten-free'],
     lines: [
@@ -125,6 +138,7 @@ export const DEMO_RECIPES: Recipe[] = [
   },
   {
     id: 'pumpkin-ginger-soup', name: 'Pumpkin soup with ginger',
+    photo: 'images/recipes/pumpkin-ginger-soup.webp',
     description: 'Silky roasted pumpkin with fresh ginger and a little coconut.',
     minutes: 45, servings: 4, diets: ['vegan', 'gluten-free'],
     lines: [
@@ -138,18 +152,8 @@ export const DEMO_RECIPES: Recipe[] = [
     source: 'demo',
   },
   {
-    id: 'overnight-oats', name: 'Overnight oats with berries',
-    description: 'Oats soaked in milk and skyr overnight, topped with berries in the morning.',
-    minutes: 10, servings: 1, diets: ['vegetarian'],
-    lines: [{ foodId: 'oats', grams: 50 }, { foodId: 'milk-semi', grams: 150 }, { foodId: 'skyr-natural', grams: 100 }, { foodId: 'berries', grams: 80 }],
-    extras: ['Cinnamon'],
-    steps: ['Stir the oats, milk and skyr together in a jar.', 'Chill overnight.', 'Top with berries before serving.'],
-    art: { backdrop: 'lilac', food: 'oats', vessel: 'bowl', garnish: [
-      { x: 36, y: 36, r: 5, color: 'berry', shape: 'dot' }, { x: 52, y: 34, r: 5, color: 'berryRed', shape: 'dot' }, { x: 60, y: 54, r: 4.4, color: 'berry', shape: 'dot' }, { x: 40, y: 58, r: 5, color: 'berryRed', shape: 'dot' }] },
-    source: 'demo',
-  },
-  {
     id: 'salmon-rice-bowl', name: 'Salmon rice bowl',
+    photo: 'images/recipes/salmon-rice-bowl.webp',
     description: 'Flaked salmon over rice with crisp cucumber, spinach and lemon.',
     minutes: 20, servings: 2, diets: ['gluten-free', 'dairy-free'],
     lines: [
@@ -160,20 +164,6 @@ export const DEMO_RECIPES: Recipe[] = [
     steps: ['Roast the salmon for 12 minutes.', 'Warm the rice and slice the cucumber.', 'Build the bowls and squeeze over the lemon.'],
     art: { backdrop: 'sky', food: 'rice', vessel: 'bowl', garnish: [
       { x: 30, y: 32, r: 10, color: 'salmon', shape: 'cube' }, { x: 62, y: 34, r: 7, color: 'green', shape: 'dot' }, { x: 60, y: 60, r: 7, color: 'green', shape: 'leaf' }, { x: 36, y: 62, r: 2, color: 'dark', shape: 'dot' }] },
-    source: 'demo',
-  },
-  {
-    id: 'chickpea-spinach-curry', name: 'Chickpea & spinach curry',
-    description: 'Chickpeas and spinach in a coconut tomato sauce with plenty of ginger.',
-    minutes: 30, servings: 4, diets: ['vegan', 'gluten-free'],
-    lines: [
-      { foodId: 'chickpeas-canned', grams: 480 }, { foodId: 'spinach', grams: 200 }, { foodId: 'tomatoes-canned', grams: 400 },
-      { foodId: 'coconut-milk', grams: 200 }, { foodId: 'onion', grams: 150 }, { foodId: 'ginger', grams: 15 }, { foodId: 'olive-oil', grams: 15 },
-    ],
-    extras: ['Curry powder, salt'],
-    steps: ['Soften the onion and ginger in the oil with the spices.', 'Add the chickpeas, tomatoes and coconut milk; simmer for 15 minutes.', 'Stir in the spinach until wilted.'],
-    art: { backdrop: 'blush', food: 'curry', vessel: 'bowl', garnish: [
-      { x: 34, y: 34, r: 4.4, color: 'nut', shape: 'dot' }, { x: 50, y: 30, r: 4.4, color: 'nut', shape: 'dot' }, { x: 60, y: 48, r: 4.4, color: 'nut', shape: 'dot' }, { x: 40, y: 58, r: 4.4, color: 'nut', shape: 'dot' }, { x: 56, y: 62, r: 5, color: 'seed', shape: 'leaf' }] },
     source: 'demo',
   },
 ];

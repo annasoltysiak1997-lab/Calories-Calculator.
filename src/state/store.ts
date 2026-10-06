@@ -23,7 +23,12 @@ export interface Dish {
   lastChange?: { lineId: string; kind: 'added' | 'edited'; deltaKcal: number; before: Nutrients };
 }
 
-export interface RecentFood { foodId: string; grams: number }
+export interface RecentFood {
+  foodId: string;
+  grams: number;
+  /** Household unit the amount was entered in, e.g. "medium". */
+  unit?: string;
+}
 
 export interface AppState {
   dish: Dish | null;
@@ -31,17 +36,42 @@ export interface AppState {
   recent: RecentFood[];
   filters: RecipeFilters;
   toast?: { id: number; message: string; undo?: () => void };
+  /** Earlier versions of the dish for Undo (most recent last). Kept in memory only. */
+  history: (Dish | null)[];
 }
 
-const STORAGE_KEY = 'daylight-calories-calculator:v1';
-const initial: AppState = { dish: null, customFoods: {}, recent: [], filters: NO_FILTERS };
+// v2: state saved by builds before the Bitewise redesign (e.g. an old recipe copy as the dish) is not carried over.
+export const STORAGE_KEY = 'bitewise-calories-calculator:v2';
+/** Same data format as STORAGE_KEY, saved under the old product name. Moved to STORAGE_KEY on load. */
+export const LEGACY_STORAGE_KEY = 'daylight-calories-calculator:v2';
+const OLD_STORAGE_KEYS = ['daylight-calories-calculator:v1'];
+const initial: AppState = { dish: null, customFoods: {}, recent: [], filters: NO_FILTERS, history: [] };
+const HISTORY_MAX = 20;
+
+/**
+ * Moves saved state from the old product-name key to the Bitewise key, unchanged. If both exist the
+ * Bitewise key wins. The old key is removed only after the copy is written, so nothing is lost if
+ * storage is full.
+ */
+export function migrateStorageKey(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>) {
+  const legacy = storage.getItem(LEGACY_STORAGE_KEY);
+  if (legacy === null) return;
+  if (storage.getItem(STORAGE_KEY) === null) storage.setItem(STORAGE_KEY, legacy);
+  storage.removeItem(LEGACY_STORAGE_KEY);
+}
 
 function load(): AppState {
   try {
+    OLD_STORAGE_KEYS.forEach((k) => window.localStorage.removeItem(k));
+    migrateStorageKey(window.localStorage);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return initial;
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...initial, ...parsed, toast: undefined, filters: { ...NO_FILTERS, ...parsed.filters } };
+    // A recipe copy is a working copy for one visit. It is not restored later, so an old copy can never
+    // come back as the dish in progress (the demo Lentil soup flow then starts clean). Own foods, recent
+    // foods and filters are restored as usual.
+    const dish = parsed.dish?.source ? null : parsed.dish ?? null;
+    return { ...initial, ...parsed, dish, toast: undefined, history: [], filters: { ...NO_FILTERS, ...parsed.filters } };
   } catch {
     return initial;
   }
@@ -52,7 +82,7 @@ const listeners = new Set<() => void>();
 
 function persist() {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, toast: undefined }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, toast: undefined, history: undefined }));
   } catch {
     /* storage unavailable: keep working in memory */
   }
@@ -85,6 +115,11 @@ function dishTotal(d: Dish, foods: Record<string, Food>): Nutrients {
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 }
 
+/** Replaces the dish and remembers the previous version for Undo. */
+function withDish(s: AppState, dish: Dish | null): AppState {
+  return { ...s, dish, history: [...s.history, s.dish].slice(-HISTORY_MAX) };
+}
+
 export const actions = {
   toast(message: string, undo?: () => void) {
     setState((s) => ({ ...s, toast: { id: Date.now(), message, undo } }));
@@ -101,6 +136,16 @@ export const actions = {
     setState((s) => ({ ...s, recent: [{ foodId, grams }, ...s.recent.filter((r) => r.foodId !== foodId)].slice(0, 5) }));
   },
 
+  /** Starts a dish from given ingredients, e.g. the demo dish on Home. */
+  startDishWith(name: string, servings: number, lines: { foodId: string; grams: number }[]) {
+    setState((s) => withDish(s, { name, servings, lines: lines.map((l) => ({ id: newId('line'), foodId: l.foodId, grams: l.grams })) }));
+  },
+
+  /** Restores the dish as it was before the last change. */
+  undo() {
+    setState((s) => (s.history.length ? { ...s, dish: s.history[s.history.length - 1], history: s.history.slice(0, -1), toast: undefined } : s));
+  },
+
   startDish(name = 'My dish') {
     setState((s) => ({ ...s, dish: { name, lines: [], servings: 2 } }));
   },
@@ -111,10 +156,7 @@ export const actions = {
       const dish: Dish = s.dish ?? { name: 'My dish', lines: [], servings: 2 };
       const before = dishTotal(dish, foods);
       const line: DishLine = { id: newId('line'), foodId, grams };
-      return {
-        ...s,
-        dish: { ...dish, lines: [...dish.lines, line], lastChange: { lineId: line.id, kind: 'added', deltaKcal: forAmount(foods[foodId], grams).kcal, before } },
-      };
+      return withDish(s, { ...dish, lines: [...dish.lines, line], lastChange: { lineId: line.id, kind: 'added', deltaKcal: forAmount(foods[foodId], grams).kcal, before } });
     });
   },
 
@@ -125,16 +167,23 @@ export const actions = {
       const before = dishTotal(s.dish, foods);
       const old = s.dish.lines.find((l) => l.id === lineId);
       if (!old || old.grams === grams) return s;
+      const lines = s.dish.lines.map((l) => (l.id === lineId ? { ...l, grams } : l));
+      // Typing "200" edits the same line three times: keep it one change (one Undo step, one delta).
+      const lc = s.dish.lastChange;
+      if (lc?.kind === 'edited' && lc.lineId === lineId) {
+        const next = { ...s.dish, lines };
+        return { ...s, dish: { ...next, lastChange: { ...lc, deltaKcal: dishTotal(next, foods).kcal - lc.before.kcal } } };
+      }
       const delta = forAmount(foods[old.foodId], grams).kcal - forAmount(foods[old.foodId], old.grams).kcal;
-      return { ...s, dish: { ...s.dish, lines: s.dish.lines.map((l) => (l.id === lineId ? { ...l, grams } : l)), lastChange: { lineId, kind: 'edited', deltaKcal: delta, before } } };
+      return withDish(s, { ...s.dish, lines, lastChange: { lineId, kind: 'edited', deltaKcal: delta, before } });
     });
   },
 
   removeLine(lineId: string) {
     const prev = state.dish;
-    setState((s) => (s.dish ? { ...s, dish: { ...s.dish, lines: s.dish.lines.filter((l) => l.id !== lineId), lastChange: undefined } } : s));
+    setState((s) => (s.dish ? withDish(s, { ...s.dish, lines: s.dish.lines.filter((l) => l.id !== lineId), lastChange: undefined }) : s));
     const food = prev?.lines.find((l) => l.id === lineId);
-    if (prev && food) actions.toast(`${allFoods()[food.foodId]?.name ?? 'Ingredient'} removed`, () => setState((s) => ({ ...s, dish: prev })));
+    if (prev && food) actions.toast(`${allFoods()[food.foodId]?.name ?? 'Ingredient'} removed`, () => actions.undo());
   },
 
   renameDish(name: string) { setState((s) => (s.dish ? { ...s, dish: { ...s.dish, name } } : s)); },
@@ -143,23 +192,20 @@ export const actions = {
 
   clearDish() {
     const prev = state.dish;
-    setState((s) => ({ ...s, dish: null }));
-    if (prev) actions.toast('Dish cleared', () => setState((s) => ({ ...s, dish: prev })));
+    setState((s) => withDish(s, null));
+    if (prev) actions.toast('Dish cleared', () => actions.undo());
   },
 
   /** "Make an editable copy": clones the recipe into the dish. The recipe data is read-only. */
   copyRecipe(recipe: Recipe) {
     const prev = state.dish;
-    setState((s) => ({
-      ...s,
-      dish: {
-        name: `${recipe.name} (my copy)`,
-        servings: recipe.servings,
-        lines: recipe.lines.map((l) => ({ id: newId('line'), foodId: l.foodId, grams: l.grams })),
-        source: { recipeId: recipe.id, recipeName: recipe.name, servings: recipe.servings, lines: recipe.lines.map((l) => ({ ...l })) },
-      },
+    setState((s) => withDish(s, {
+      name: `${recipe.name} (my copy)`,
+      servings: recipe.servings,
+      lines: recipe.lines.map((l) => ({ id: newId('line'), foodId: l.foodId, grams: l.grams })),
+      source: { recipeId: recipe.id, recipeName: recipe.name, servings: recipe.servings, lines: recipe.lines.map((l) => ({ ...l })) },
     }));
-    actions.toast('Copy created. The original recipe is unchanged.', prev && prev.lines.length ? () => setState((s) => ({ ...s, dish: prev })) : undefined);
+    actions.toast('Copy created. The original recipe is unchanged.', prev && prev.lines.length ? () => actions.undo() : undefined);
   },
 
   setFilters(filters: RecipeFilters) { setState((s) => ({ ...s, filters })); },

@@ -1,16 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { navigate, type Route } from '../../app/router';
 import { AmountField } from '../../components/calculator/AmountField';
 import { DemoNote } from '../../components/feedback/Feedback';
 import { CalcHeader } from '../../components/layout/CalcHeader';
 import { CalculatorTabs } from '../../components/layout/AppHeader';
 import { Screen } from '../../components/layout/Screen';
-import { NutritionSummary } from '../../components/nutrition/NutritionSummary';
+import { Keypad } from '../../components/calculator/Keypad';
+import { SelectedFoodField } from '../../components/calculator/SelectedFoodField';
+import { useKeypadFocus } from '../../components/calculator/useKeypadFocus';
+import { MacroBar } from '../../components/nutrition/MacroBar';
+import { MacroTiles } from '../../components/nutrition/MacroTiles';
 import { OperatorGlyph } from '../../components/nutrition/OperatorGlyph';
+import { ResultRow } from '../../components/nutrition/ResultRow';
 import { Button } from '../../components/primitives/Button';
-import { Check, iconProps, Pencil, Plus, Search, X } from '../../components/primitives/Icon';
-import { formatGrams, formatKcal } from '../../domain/format';
-import { forAmount } from '../../domain/nutrition';
+import { ChipGroup, ToggleChip } from '../../components/primitives/Chip';
+import { Check, iconProps, Plus, ScanBarcode, Search, X } from '../../components/primitives/Icon';
+import { IconButton } from '../../components/primitives/IconButton';
+import { DEMO_DISH } from '../../data/home.demo';
+import { applyAmountKey, type AmountKey } from '../../domain/amountInput';
+import { formatAmount, formatGrams, formatKcal, shortFoodName } from '../../domain/format';
+import { convertAmount, forAmount, parseAmount, unitToGrams } from '../../domain/nutrition';
 import type { Food } from '../../domain/types';
 import { DEMO_FOODS } from '../../data/foods.demo';
 import { actions, useAppState } from '../../state/store';
@@ -23,6 +32,7 @@ export function FoodScreen({ route }: { route: FoodRoute }) {
   const dish = useAppState((s) => s.dish);
   const foods = useMemo<Record<string, Food>>(() => ({ ...DEMO_FOODS, ...custom }), [custom]);
   const [query, setQuery] = useState(route.query ?? '');
+  // Nothing is selected until the person picks a food; a food named in the link opens directly (no amount).
   const [selectedId, setSelectedId] = useState<string | undefined>(route.foodId && foods[route.foodId] ? route.foodId : undefined);
   const [entering, setEntering] = useState(false);
   const selected = selectedId ? foods[selectedId] : undefined;
@@ -36,16 +46,25 @@ export function FoodScreen({ route }: { route: FoodRoute }) {
 
   const pick = (f: Food) => { setSelectedId(f.id); setEntering(false); };
 
+  /** Adds to the dish in progress; until there is one, that is the demo dish shown on Home. */
+  const add = (grams: number) => {
+    if (!selectedId) return;
+    if (!dish) actions.startDishWith(DEMO_DISH.name, DEMO_DISH.servings, DEMO_DISH.lines);
+    actions.addToDish(selectedId, grams);
+    actions.saveRecent(selectedId, grams);
+    navigate('/dish');
+  };
+
   if (selected) {
     return (
-      <FoodCalculation key={selected.id} food={selected} initialGrams={route.foodId === selected.id ? route.grams : undefined}
-        dishName={dish?.name} hasDish={Boolean(dish)} onChange={() => { setSelectedId(undefined); setQuery(''); }} />
+      <FoodCalculation key={selected.id} food={selected}
+        dishName={dish?.name ?? DEMO_DISH.name} onChange={() => { setSelectedId(undefined); setQuery(''); }} onAdd={add} />
     );
   }
 
   return (
-    <Screen>
-      <CalcHeader />
+    <Screen className="dl-page--food">
+      <CalcHeader trailing={<ScanButton />} />
       <CalculatorTabs active="food" />
       {entering ? (
         <CustomFoodForm initialName={query} onCancel={() => setEntering(false)} onSave={(input) => pick(actions.addCustomFood(input))} />
@@ -82,76 +101,99 @@ export function FoodScreen({ route }: { route: FoodRoute }) {
   );
 }
 
-function FoodCalculation({ food, initialGrams, dishName, hasDish, onChange }: { food: Food; initialGrams?: number; dishName?: string; hasDish: boolean; onChange: () => void }) {
+function FoodCalculation({ food, dishName, onChange, onAdd }: { food: Food; dishName: string; onChange: () => void; onAdd: (grams: number) => void }) {
   const units = Object.entries(food.units ?? {});
   const [unit, setUnit] = useState<string>('g');
-  const [qty, setQty] = useState<number | undefined>(initialGrams);
-  const grams = qty === undefined ? undefined : unit === 'g' ? qty : qty * (food.units?.[unit] ?? 1);
-  const result = grams !== undefined && grams > 0 ? forAmount(food, grams) : undefined;
-  const [saved, setSaved] = useState(false);
+  // The amount as typed (keypad, keyboard or quick amount). Always starts empty.
+  const [text, setText] = useState('');
+  // After a quick amount or unit switch, the next key starts a new number instead of appending.
+  const [replaceNext, setReplaceNext] = useState(false);
+  // Exact weight kept across a unit switch, so 10 g → 0.07 pot → g is still 10 g. Cleared by any edit.
+  const [pinnedGrams, setPinnedGrams] = useState<number>();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  // The actions count as inside, so tapping "Add" with the keypad open is not lost to a layout change.
+  const keypad = useKeypadFocus<'amount'>([inputRef, actionsRef]);
+  const editing = keypad.active !== null;
+  const max = unit === 'g' ? 5000 : 50;
+  const parsed = parseAmount(text);
+  const qty = text !== '' && parsed > 0 && parsed <= max ? parsed : undefined;
+  const grams = qty === undefined ? undefined : pinnedGrams ?? unitToGrams(food, unit, qty);
+  const result = grams !== undefined ? forAmount(food, grams) : undefined;
+  const [savedGrams, setSavedGrams] = useState<number>();
+  // Without an amount, "Save as recent" keeps the 100 g reference.
+  const saveGrams = grams ?? 100;
+  const quick: { label: string; unit: string; qty: number }[] = [
+    { label: formatAmount(food, 100), unit: 'g', qty: 100 },
+    ...units.map(([u, g]) => ({ label: formatAmount(food, g, u), unit: u, qty: 1 })),
+  ];
 
-  const add = () => {
-    if (!grams) return;
-    actions.addToDish(food.id, grams);
-    actions.saveRecent(food.id, grams);
-    navigate('/dish');
+  const edit = (next: string) => { setText(next); setReplaceNext(false); setPinnedGrams(undefined); };
+  const setAmount = (u: string, n: number | undefined) => { setUnit(u); setText(n === undefined ? '' : String(n)); setReplaceNext(true); setPinnedGrams(undefined); };
+  const switchUnit = (u: string) => {
+    if (grams === undefined) { setUnit(u); return; }
+    setAmount(u, convertAmount(food, grams, 'g', u));
+    setPinnedGrams(grams);
   };
+  const pressKey = (k: AmountKey) => edit(applyAmountKey(text, k, { max, decimals: unit === 'g' ? 1 : 2, replace: replaceNext }));
 
   return (
-    <Screen
-      bottomBar={
-        <div className="dl-bar-actions">
-          <Button fullWidth disabled={!result} onClick={add}
-            sub={result ? `${hasDish ? `${dishName} · ` : ''}${formatGrams(grams!)} g · ${formatKcal(result.kcal)} kcal` : 'Enter an amount first'}>
-            {hasDish ? 'Add to dish' : 'Start a dish with this'}
-          </Button>
-          <Button variant="secondary" disabled={!result || saved} icon={saved ? Check : undefined}
-            onClick={() => { if (grams) { actions.saveRecent(food.id, grams); setSaved(true); } }}>
-            {saved ? 'Saved' : 'Save as recent'}
-          </Button>
-        </div>
-      }
-    >
-      <CalcHeader />
+    <Screen className={`dl-page--food ${editing ? 'dl-page--keypad' : ''}`}>
+      <CalcHeader trailing={<ScanButton />} />
       <CalculatorTabs active="food" />
-      <section className="dl-card dl-stack" style={{ gap: 'var(--dl-space-4)' }} aria-labelledby="food-name">
-        <div className="dl-food-head">
-          <div className="dl-food-head__text">
-            <h2 id="food-name" className="dl-card-title">{food.name}</h2>
-            <span className="dl-muted">{formatKcal(food.per100g.kcal)} kcal per 100 g · {food.source === 'user' ? 'your values' : 'demo values'}</span>
-          </div>
-          <button type="button" className="dl-text-button" onClick={onChange}><Pencil {...iconProps(16)} />Change</button>
+      <SelectedFoodField name={food.name} meta={food.source === 'user' ? 'Your values' : 'Demo values'} onChange={onChange} />
+
+      <section className="dl-card dl-food-card" aria-labelledby="food-name">
+        <div className="dl-food-card__head">
+          <h2 id="food-name" className="dl-food-card__title">{food.name}</h2>
+          <span className="dl-food-card__per">{formatKcal(food.per100g.kcal)} kcal / 100 g</span>
         </div>
-        <div className="dl-amount-row">
+        <div className="dl-food-amount">
           <OperatorGlyph op="×" />
-          <AmountField label="Amount" unit={unit === 'g' ? 'g' : unit} value={qty} onChange={setQty} max={unit === 'g' ? 5000 : 50}
-            sub={unit !== 'g' ? (qty !== undefined && qty !== 1 && grams ? `${qty} ${unit} = ${formatGrams(grams)} g` : `1 ${unit} = ${formatGrams(food.units?.[unit] ?? 0)} g`) : undefined} autoFocus={initialGrams === undefined} />
+          <AmountField layout="inline" size="md" label="Amount" placeholder="Enter amount" unit={unit} value={qty} max={max}
+            text={text} onTextChange={edit} keypad inputRef={inputRef}
+            onFocus={() => keypad.setActive('amount')} onBlur={keypad.onBlur}
+            sub={unit !== 'g' && grams ? formatAmount(food, grams, unit) : undefined} />
         </div>
-        {units.length ? (
-          <div className="dl-segmented dl-segmented--sm" role="radiogroup" aria-label="Unit">
-            {[['g', 1] as [string, number], ...units].map(([u, g]) => (
-              <button key={u} type="button" role="radio" aria-checked={unit === u} className="dl-segmented__item"
-                onClick={() => { setUnit(u); if (qty !== undefined) setQty(u === 'g' ? (grams ?? qty) : 1); }}>
-                {u === 'g' ? 'grams' : u}<span className="dl-visually-hidden">{u === 'g' ? '' : ` (${g} g)`}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <div className="dl-chip-group" role="group" aria-label="Quick amounts">
-          {[['100 g', 'g', 100] as const, ...units.map(([u]) => [`1 ${u}`, u, 1] as const)].map(([label, u, n]) => (
-            <button key={label} type="button" className="dl-chip" onClick={() => { setUnit(u); setQty(n); }}>{label}</button>
-          ))}
+        <hr className="dl-food-card__divider" />
+        <div className={result ? 'dl-food-result' : 'dl-food-result dl-food-result--reference'}>
+          <ResultRow label={result ? 'This amount' : 'Per 100 g'} kcal={(result ?? food.per100g).kcal} size="md"
+            note={result ? undefined : 'Reference until you enter an amount'} />
+          {result ? <MacroBar nutrients={result} /> : null}
+          <MacroTiles nutrients={result ?? food.per100g} />
         </div>
       </section>
 
-      {result ? (
-        <NutritionSummary label="This amount" nutrients={result} size="xl" bar />
-      ) : (
-        <div className="dl-reference">
-          <NutritionSummary label="Per 100 g" nutrients={food.per100g} size="lg" note="Reference until you enter an amount" />
-        </div>
+      {editing ? null : (
+        <section className="dl-stack dl-food-quick" aria-labelledby="quick-amounts">
+          <h3 id="quick-amounts" className="dl-food-quick__title">Quick amounts</h3>
+          <ChipGroup label="Quick amounts" fill>
+            {quick.map((q) => (
+              <ToggleChip key={q.label} selected={unit === q.unit && qty === q.qty} onToggle={() => setAmount(q.unit, q.qty)}>{q.label}</ToggleChip>
+            ))}
+          </ChipGroup>
+        </section>
       )}
-      <DemoNote>{food.source === 'user' ? 'Calculated from the values you entered.' : undefined}</DemoNote>
+
+      <div className="dl-food-actions" ref={actionsRef}>
+        <Button variant="dark" disabled={!result} onClick={() => { if (grams) onAdd(grams); }}>Add to {dishName}</Button>
+        <Button variant="secondary" disabled={savedGrams === saveGrams} icon={savedGrams === saveGrams ? Check : undefined}
+          onClick={() => { actions.saveRecent(food.id, saveGrams); setSavedGrams(saveGrams); }}>
+          {savedGrams === saveGrams ? 'Saved' : 'Save as recent'}
+        </Button>
+      </div>
+      <p className={editing ? 'dl-visually-hidden' : 'dl-food-hint'} aria-live="polite">
+        {result ? `${formatGrams(grams!)} g · ${formatKcal(result.kcal)} kcal will be added to ${dishName}` : 'Enter an amount to add it to your dish'}
+      </p>
+
+      {editing ? (
+        <Keypad panelRef={keypad.keypadRef} label={`Amount of ${shortFoodName(food.name)}`} unit={unit} onUnitChange={switchUnit} onKey={pressKey}
+          onBlur={keypad.onBlur} units={[{ value: 'g', label: 'g' }, ...units.map(([u]) => ({ value: u, label: u }))]} />
+      ) : null}
     </Screen>
   );
+}
+
+function ScanButton() {
+  return <IconButton icon={ScanBarcode} label="Scan barcode" variant="outline" onClick={() => actions.toast('Barcode scanning isn’t available yet. Search for the food instead.')} />;
 }

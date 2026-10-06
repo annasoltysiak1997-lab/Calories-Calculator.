@@ -28,6 +28,14 @@ export function unitToGrams(food: Food, unit: string, quantity: number): number 
   return g * quantity;
 }
 
+/** The same weight in another unit, e.g. 150 g → 1 pot. Rounded to 2 decimals (1 for grams) for entry. */
+export function convertAmount(food: Food, quantity: number, from: string, to: string): number {
+  const grams = unitToGrams(food, from, quantity);
+  const value = to === 'g' ? grams : grams / unitToGrams(food, to, 1);
+  const f = to === 'g' ? 10 : 100;
+  return Math.round(value * f) / f;
+}
+
 export interface DishLine extends IngredientLine {
   food: Food;
   nutrients: Nutrients;

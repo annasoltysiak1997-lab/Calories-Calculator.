@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useRoute } from './app/router';
+import { BitewiseLaunch } from './components/brand/BitewiseLaunch';
 import { EmptyState, Toast } from './components/feedback/Feedback';
 import { Screen } from './components/layout/Screen';
 import { TokenPreview } from './features/design-system/TokenPreview';
@@ -12,6 +14,8 @@ import { RecipesScreen } from './features/recipes/RecipesScreen';
 
 export default function App() {
   const route = useRoute();
+  // The launch splash plays once per page load, over whichever screen the URL opens.
+  const [launching, setLaunching] = useState(true);
   let screen;
   switch (route.name) {
     case 'home': screen = <HomeScreen />; break;
@@ -35,6 +39,7 @@ export default function App() {
     <>
       {screen}
       <Toast />
+      {launching ? <BitewiseLaunch onDone={() => setLaunching(false)} /> : null}
     </>
   );
 }

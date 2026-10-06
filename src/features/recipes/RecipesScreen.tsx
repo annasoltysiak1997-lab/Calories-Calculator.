@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { DemoNote } from '../../components/feedback/Feedback';
 import { CalcHeader } from '../../components/layout/CalcHeader';
 import { CalculatorTabs } from '../../components/layout/AppHeader';
 import { Screen, SectionHeading } from '../../components/layout/Screen';
@@ -7,7 +6,7 @@ import { RemovableChip } from '../../components/primitives/Chip';
 import { Check, iconProps, Search, SlidersHorizontal, X } from '../../components/primitives/Icon';
 import { IconButton } from '../../components/primitives/IconButton';
 import { RecipeCard } from '../../components/recipes/RecipeCard';
-import { RecipeIllustration } from '../../components/recipes/RecipeIllustration';
+import { Photo } from '../../components/recipes/RecipeImage';
 import { DEMO_FOODS } from '../../data/foods.demo';
 import { DEMO_RECIPES } from '../../data/recipes.demo';
 import {
@@ -19,13 +18,13 @@ import type { Food, Recipe } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { FilterSheet } from './FilterSheet';
 
-const CATEGORIES: { title: string; sub: string; recipeId: string; filters: Partial<RecipeFilters> }[] = [
-  { title: 'Quick meals', sub: '30 min or less', recipeId: 'shakshuka', filters: { maxMinutes: 30 } },
-  { title: 'Vegetarian', sub: 'Meat-free dinners', recipeId: 'greek-salad', filters: { diets: ['vegetarian'] } },
-  { title: 'Lighter meals', sub: '500 kcal or less', recipeId: 'pumpkin-ginger-soup', filters: { maxKcalPerServing: 500 } },
-  { title: 'Soups', sub: 'Warm and hearty', recipeId: 'white-bean-stew', filters: { query: 'soup' } },
+const CATEGORIES: { title: string; sub: string; photo: string; filters: Partial<RecipeFilters> }[] = [
+  { title: 'Quick meals', sub: '30 min or less', photo: 'images/categories/quick-meals.webp', filters: { maxMinutes: 30 } },
+  { title: 'Vegetarian', sub: 'Meat-free dinners', photo: 'images/categories/vegetarian.webp', filters: { diets: ['vegetarian'] } },
+  { title: 'High protein', sub: '20%+ from protein', photo: 'images/categories/high-protein.webp', filters: { minProteinPct: 20 } },
+  { title: 'Comfort food', sub: 'Stews and curries', photo: 'images/categories/comfort-food.webp', filters: { collection: 'comfort' } },
 ];
-const PANTRY = ['Lentils', 'Chickpeas', 'Tomatoes', 'Eggs', 'Spinach', 'Coconut milk'];
+const PANTRY = ['Lentils', 'Tomatoes', 'Eggs', 'Spinach', 'Coconut milk'];
 
 export function RecipesScreen() {
   const filters = useAppState((s) => s.filters);
@@ -89,7 +88,6 @@ export function RecipesScreen() {
         <NoResults filters={filters} foods={foods} kcal={kcal} onChange={set} onRemove={removeChip} />
       )}
 
-      <DemoNote>Recipes and nutrition are demo content, calculated from typical per-100 g values.</DemoNote>
       <FilterSheet open={sheet} value={filters} recipes={DEMO_RECIPES} foods={foods} ingredientOptions={allIngredientNames(DEMO_RECIPES, foods)}
         onClose={() => setSheet(false)} onApply={(f) => { set(f); setSheet(false); }} />
     </Screen>
@@ -106,7 +104,7 @@ function Discover({ kcal, byId, onFilter }: { kcal: (r: Recipe) => number; byId:
         <div className="dl-category-grid">
           {CATEGORIES.map((c) => (
             <button key={c.title} type="button" className="dl-category" onClick={() => onFilter(c.filters)}>
-              <RecipeIllustration art={byId(c.recipeId).art} className="dl-category__art" />
+              <Photo src={c.photo} className="dl-category__art" />
               <span className="dl-category__title">{c.title}</span>
               <span className="dl-category__sub">{c.sub}</span>
             </button>
@@ -178,6 +176,8 @@ function criterionText(c: Constraint, r: Recipe, kcal: (r: Recipe) => number, ok
     case 'diet': return ok ? constraintLabel(c) : `Not ${constraintLabel(c).toLowerCase()}`;
     case 'include': return ok ? `Contains ${c.value.toLowerCase()}` : `Doesn’t contain ${c.value.toLowerCase()}`;
     case 'exclude': return ok ? `No ${c.value.toLowerCase()}` : `Contains ${c.value.toLowerCase()}`;
+    case 'protein': return ok ? `High protein (${c.value}%+ of kcal)` : `Under ${c.value}% of kcal from protein`;
+    case 'collection': return ok ? constraintLabel(c) : `Not in ${constraintLabel(c).toLowerCase()}`;
     default: return constraintLabel(c);
   }
 }

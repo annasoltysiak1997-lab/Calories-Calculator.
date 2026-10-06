@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_FOODS as F } from '../../data/foods.demo';
 import { DEMO_RECIPES as R } from '../../data/recipes.demo';
-import { activeFilterCount, applyFilters, closestMatch, kcalPerServing, NO_FILTERS, removalEffects, type RecipeFilters } from '../filters';
+import { NO_FILTERS, type RecipeFilters, activeFilterCount, applyFilters, closestMatch, constraintLabel, constraintsOf, kcalPerServing, proteinPct, removalEffects, withoutConstraint } from '../filters';
 
 const names = (f: RecipeFilters) => applyFilters(R, f, F).map((r) => r.name);
 
@@ -39,5 +39,23 @@ describe('recipe filters', () => {
     const close = closestMatch(R, f, F)!;
     expect(close.recipe.name).toBe('Lentil & walnut salad');
     expect(close.unmet.map((c) => c.kind)).toEqual(['kcal']);
+  });
+});
+
+describe('category filters: high protein and comfort food', () => {
+  const ids = (f: Partial<RecipeFilters>) => applyFilters(R, { ...NO_FILTERS, ...f }, F).map((r) => r.id);
+  it('high protein = at least 20% of kcal per serving from protein (inclusive)', () => {
+    expect(ids({ minProteinPct: 20 })).toEqual(['red-lentil-dal', 'lentil-feta-bake', 'white-bean-stew', 'shakshuka', 'salmon-rice-bowl']);
+    expect(proteinPct(R.find((r) => r.id === 'red-lentil-dal')!, F)).toBe(22);
+  });
+  it('comfort food = the curated collection', () => {
+    expect(ids({ collection: 'comfort' })).toEqual(['lentil-soup', 'red-lentil-dal', 'lentil-bolognese', 'lentil-feta-bake', 'white-bean-stew']);
+  });
+  it('shows as removable chips like the other filters', () => {
+    const f: RecipeFilters = { ...NO_FILTERS, minProteinPct: 20, collection: 'comfort' };
+    const cs = constraintsOf(f);
+    expect(cs.map(constraintLabel)).toEqual(['High protein', 'Comfort food']);
+    expect(ids(f)).toEqual(['red-lentil-dal', 'lentil-feta-bake', 'white-bean-stew']);
+    expect(withoutConstraint(f, cs[0])).toEqual({ ...NO_FILTERS, collection: 'comfort' });
   });
 });

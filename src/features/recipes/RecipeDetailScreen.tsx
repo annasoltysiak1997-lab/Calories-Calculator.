@@ -8,7 +8,7 @@ import { NutritionSummary } from '../../components/nutrition/NutritionSummary';
 import { Button } from '../../components/primitives/Button';
 import { Tag } from '../../components/primitives/Chip';
 import { Clock, Copy, Flame, iconProps, Users } from '../../components/primitives/Icon';
-import { RecipeIllustration } from '../../components/recipes/RecipeIllustration';
+import { RecipeImage } from '../../components/recipes/RecipeImage';
 import { DEMO_FOODS } from '../../data/foods.demo';
 import { DEMO_RECIPES } from '../../data/recipes.demo';
 import { DIET_LABELS, effectiveDiets } from '../../domain/filters';
@@ -49,7 +49,7 @@ export function RecipeDetailScreen({ id }: { id: string }) {
       </div>
     }>
       <AppHeader title="" back={{ label: 'Recipes', fallback: '/recipes' }} />
-      <RecipeIllustration art={recipe.art} className="dl-detail-hero" label={`Illustration of ${recipe.name}`} />
+      <RecipeImage recipe={recipe} className="dl-detail-hero" label={`${recipe.photo ? 'Photo' : 'Illustration'} of ${recipe.name}`} eager />
       <header className="dl-stack" style={{ gap: 'var(--dl-space-2)' }}>
         <h1 className="dl-detail-title">{recipe.name}</h1>
         <p className="dl-detail-lead">{recipe.description}</p>

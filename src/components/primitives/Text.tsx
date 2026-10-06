@@ -13,7 +13,7 @@ interface TextProps {
   id?: string;
 }
 
-/** Applies one of the 12 Daylight text styles through CSS variables. */
+/** Applies one of the 12 Bitewise text styles through CSS variables. */
 export function Text({ variant = 'body', tone = 'primary', as: Tag = 'span', caps, className = '', children, id }: TextProps) {
   const style = {
     fontSize: `var(--dl-text-${variant}-size)`,

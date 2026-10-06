@@ -4,7 +4,6 @@ import { workingLine } from '../../domain/format';
 import { dishTotals, portionByServings } from '../../domain/nutrition';
 import { color, elevation, primitives, radius, space } from '../../theme/tokens';
 import { textStyles, type TextVariant } from '../../theme/typography';
-import { Mark } from '../../components/brand/Mark';
 import { Wordmark } from '../../components/brand/Wordmark';
 import { Button } from '../../components/primitives/Button';
 import { Card } from '../../components/primitives/Card';
@@ -71,19 +70,16 @@ export function TokenPreview() {
     <main className="ds">
       <header className="ds-hero">
         <a href="#/" className="dl-link">‹ Back to the app</a>
-        <Wordmark size={28} lockup />
-        <Text as="h1" variant="title-xl">Daylight design system</Text>
+        <Wordmark size={28} />
+        <Text as="h1" variant="title-xl">Bitewise design system</Text>
         <Text as="p" variant="body" tone="secondary">
-          Tokens, type and component foundations for Calories Calculator. Every value on this page is read from
+          Tokens, type and component foundations for Bitewise. Every value on this page is read from
           <code> src/theme/tokens.ts</code>; nutrition numbers come from <code>src/domain</code> using demo data.
         </Text>
       </header>
 
-      <Section id="brand" title="Brand" lead="The equals mark is the app icon. The wordmark is text-only inside the app.">
+      <Section id="brand" title="Brand" lead="The Bitewise wordmark is text only. There is no logo icon.">
         <div className="ds-row">
-          <Mark size={96} title="Calories Calculator app icon" />
-          <Mark size={48} />
-          <Mark size={24} />
           <Wordmark size={22} />
         </div>
       </Section>
