@@ -1,4 +1,4 @@
-# Calories Calculator — Daylight
+# Bitewise
 
 A responsive web app (React + TypeScript + Vite) for working out the calories, protein, carbohydrates and fat in a single food, a homemade dish, one serving and your own portion — plus recipe discovery with an editable-copy handoff. Built on the **Daylight** design system.
 
